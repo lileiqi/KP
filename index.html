@@ -35,6 +35,8 @@
     #page3.visible { opacity: 1; pointer-events: all; }
     #page4 { opacity: 0; pointer-events: none; }
     #page4.visible { opacity: 1; pointer-events: all; }
+    #page5 { opacity: 0; pointer-events: none; }
+    #page5.visible { opacity: 1; pointer-events: all; }
     #balls-container { position: absolute; inset: 0; z-index: 5; }
     .ball {
       position: absolute; width: 72px; height: 72px; border-radius: 50%;
@@ -164,6 +166,11 @@
     <div class="page-content" id="page4-result"></div>
   </div>
 
+  <div class="page" id="page5">
+    <div class="stars" id="stars5"></div>
+    <div class="page-content" id="page5-result"></div>
+  </div>
+
   <script>
     // ── 星星 ──────────────────────────────────────────
     function createStars(id, n) {
@@ -182,6 +189,7 @@
     createStars('stars2', 55);
     createStars('stars3', 55);
     createStars('stars4', 55);
+    createStars('stars5', 55);
 
     // ── 小球配置 ──────────────────────────────────────
     const BALL_TAGS = [
@@ -190,7 +198,7 @@
       '学厨艺', '养宠物', '交朋友'
     ];
     // 目标标签集合（志同道合的判断基准）
-    const TARGET_TAGS = new Set(['减肥', '谈恋爱', '读书', '学乐器', '健身', '旅行']);
+    const TARGET_TAGS = new Set(['衣品', '健身', '交朋友', '读书']);
     const BALL_COLORS = [
       'radial-gradient(circle at 35% 30%, rgba(255,160,100,0.9), rgba(200,70,40,0.75))',
       'radial-gradient(circle at 35% 30%, rgba(100,185,255,0.9), rgba(40,100,210,0.75))',
@@ -287,26 +295,25 @@
     function goToPage4() {
       if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
       document.getElementById('page3').classList.remove('visible');
-      document.getElementById('page4').classList.add('visible');
-      page = 4;
 
       const matchCount = clickedTags.filter(t => TARGET_TAGS.has(t)).length;
-      const similarity = matchCount / clickedTags.length;
-      const result = document.getElementById('page4-result');
 
-      if (similarity >= 0.6) {
+      if (matchCount >= 3) {
+        document.getElementById('page4').classList.add('visible');
+        page = 4;
+        const result = document.getElementById('page4-result');
         result.innerHTML =
           '<div class="result-quote">恭喜您找到志同道合的人了</div>' +
           '<div class="deco-line" style="animation:none;opacity:1;margin:1.8rem auto;"></div>' +
-          '<div class="password">密码为 keeping</div>';
+          '<div class="password">key:keeping</div>';
       } else {
+        document.getElementById('page5').classList.add('visible');
+        page = 5;
+        const result = document.getElementById('page5-result');
         result.innerHTML =
-          '<div class="sorry-text">抱歉还未找到<br>和您相似期望的人</div>' +
-          '<div class="deco-line" style="animation:none;opacity:1;margin:1.8rem auto;"></div>' +
-          '<div class="hint" style="animation:none;opacity:1;">愿您终会遇见那个志同道合的人</div>';
+          '<div class="sorry-text">抱歉还未找到和您相似期望的人，愿您终会遇到那个志同道合的人</div>';
       }
     }
-
     // ── 全局点击翻页 ──────────────────────────────────
     let page = 1;
     document.body.addEventListener('click', function(e) {
