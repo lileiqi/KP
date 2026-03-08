@@ -35,8 +35,6 @@
     #page3.visible { opacity: 1; pointer-events: all; }
     #page4 { opacity: 0; pointer-events: none; }
     #page4.visible { opacity: 1; pointer-events: all; }
-    #page5 { opacity: 0; pointer-events: none; }
-    #page5.visible { opacity: 1; pointer-events: all; }
     #balls-container { position: absolute; inset: 0; z-index: 5; }
     .ball {
       position: absolute; width: 72px; height: 72px; border-radius: 50%;
@@ -112,6 +110,63 @@
       letter-spacing: 0.3em;
       animation: fadeInUp 1.8s 0.6s cubic-bezier(0.16,1,0.3,1) forwards; opacity: 0;
     }
+    .tag-stats-title {
+      font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', serif;
+      font-size: clamp(1rem, 2.2vw, 1.8rem);
+      color: rgba(255,255,255,0.9);
+      letter-spacing: 0.2em;
+      margin-bottom: 1.6rem;
+      animation: fadeInUp 1.2s cubic-bezier(0.16,1,0.3,1) forwards; opacity: 0;
+    }
+    .tag-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.7rem 1.2rem;
+      max-width: 640px;
+      width: 90vw;
+      animation: fadeInUp 1.4s 0.3s cubic-bezier(0.16,1,0.3,1) forwards; opacity: 0;
+    }
+    .tag-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .tag-stat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .tag-name {
+      font-size: clamp(0.65rem, 1.3vw, 0.85rem);
+      color: rgba(255,255,255,0.7);
+      letter-spacing: 0.08em;
+    }
+    .tag-stat.tag-selected .tag-name {
+      color: #ffc84a;
+    }
+    .tag-count {
+      font-size: clamp(0.6rem, 1.1vw, 0.75rem);
+      color: rgba(255,255,255,0.45);
+    }
+    .tag-stat.tag-selected .tag-count {
+      color: rgba(255,200,74,0.75);
+    }
+    .tag-bar-bg {
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .tag-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.3);
+      transition: width 1s cubic-bezier(0.16,1,0.3,1);
+    }
+    .tag-stat.tag-selected .tag-bar-fill {
+      background: linear-gradient(to right, #ffa040, #ffc84a);
+    }
     .ripple {
       position: fixed; border-radius: 50%;
       background: rgba(255,200,100,0.12);
@@ -166,11 +221,6 @@
     <div class="page-content" id="page4-result"></div>
   </div>
 
-  <div class="page" id="page5">
-    <div class="stars" id="stars5"></div>
-    <div class="page-content" id="page5-result"></div>
-  </div>
-
   <script>
     // ── 星星 ──────────────────────────────────────────
     function createStars(id, n) {
@@ -189,7 +239,6 @@
     createStars('stars2', 55);
     createStars('stars3', 55);
     createStars('stars4', 55);
-    createStars('stars5', 55);
 
     // ── 小球配置 ──────────────────────────────────────
     const BALL_TAGS = [
@@ -198,7 +247,7 @@
       '学厨艺', '养宠物', '交朋友'
     ];
     // 目标标签集合（志同道合的判断基准）
-    const TARGET_TAGS = new Set(['衣品', '健身', '交朋友', '读书']);
+    const TARGET_TAGS = new Set(['减肥', '谈恋爱', '读书', '学乐器', '健身', '旅行']);
     const BALL_COLORS = [
       'radial-gradient(circle at 35% 30%, rgba(255,160,100,0.9), rgba(200,70,40,0.75))',
       'radial-gradient(circle at 35% 30%, rgba(100,185,255,0.9), rgba(40,100,210,0.75))',
@@ -295,25 +344,40 @@
     function goToPage4() {
       if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
       document.getElementById('page3').classList.remove('visible');
+      document.getElementById('page4').classList.add('visible');
+      page = 4;
 
-      const matchCount = clickedTags.filter(t => TARGET_TAGS.has(t)).length;
+      // 累计标签选中次数（localStorage 持久化）
+      const counts = JSON.parse(localStorage.getItem('tagCounts') || '{}');
+      clickedTags.forEach(tag => {
+        counts[tag] = (counts[tag] || 0) + 1;
+      });
+      localStorage.setItem('tagCounts', JSON.stringify(counts));
 
-      if (matchCount >= 3) {
-        document.getElementById('page4').classList.add('visible');
-        page = 4;
-        const result = document.getElementById('page4-result');
-        result.innerHTML =
-          '<div class="result-quote">恭喜您找到志同道合的人了</div>' +
-          '<div class="deco-line" style="animation:none;opacity:1;margin:1.8rem auto;"></div>' +
-          '<div class="password">key:keeping</div>';
-      } else {
-        document.getElementById('page5').classList.add('visible');
-        page = 5;
-        const result = document.getElementById('page5-result');
-        result.innerHTML =
-          '<div class="sorry-text">抱歉还未找到和您相似期望的人，愿您终会遇到那个志同道合的人</div>';
-      }
+      const result = document.getElementById('page4-result');
+
+      // 按选中次数降序排列
+      const sorted = BALL_TAGS.map(tag => ({ tag, count: counts[tag] || 0 }))
+        .sort((a, b) => b.count - a.count);
+      const maxCount = sorted[0].count || 1;
+
+      const tagsHtml = sorted.map(({ tag, count }) => {
+        const isSelected = clickedTags.includes(tag);
+        const pct = Math.round(count / maxCount * 100);
+        return `<div class="tag-stat${isSelected ? ' tag-selected' : ''}">` +
+          `<div class="tag-stat-header">` +
+          `<span class="tag-name">${tag}</span>` +
+          `<span class="tag-count">${count}次</span>` +
+          `</div>` +
+          `<div class="tag-bar-bg"><div class="tag-bar-fill" style="width:${pct}%"></div></div>` +
+          `</div>`;
+      }).join('');
+
+      result.innerHTML =
+        `<div class="tag-stats-title">大家最期待的成长</div>` +
+        `<div class="tag-stats">${tagsHtml}</div>`;
     }
+
     // ── 全局点击翻页 ──────────────────────────────────
     let page = 1;
     document.body.addEventListener('click', function(e) {
